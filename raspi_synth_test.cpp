@@ -104,18 +104,13 @@ int main()
             throw std::runtime_error("snd_rawmidi_open error");
         }
 
-        // Biquad Filter作成
+        // オシレータ作成
         blit_saw_oscillator oscillator(0.995, 44100);
 
         do{
             //--------------------
             // MIDI event process
             //--------------------
-            // key:control number / value:value
-            std::map<unsigned char, unsigned char> NoteOnMap;
-
-            // key:control number
-            std::set<unsigned char> NoteOffSet;
             do{
                 // read MIDI input
                 std::array<unsigned char, 3> midi_data = {};
@@ -132,27 +127,13 @@ int main()
 
                 if( midi_data[0] == 0x90/*note on*/)
                 {
-                    // 最後の値のみを保持
-                    NoteOnMap.insert( std::make_pair(midi_data[1], midi_data[2]));
+                    oscillator.trigger(midi_data[1], midi_data[2]);
                 }
                 else if( midi_data[0] == 0x80/*note off*/)
                 {
-                    NoteOffSet.insert(midi_data[1]);
+                    oscillator.release(midi_data[1]);
                 }
-
             }while(true);
-
-            // update parameters
-            for(const auto& key_value : NoteOnMap)
-            {
-                oscillator.trigger(key_value.first, key_value.second);
-            }
-
-            // update parameters
-            for(const auto& key : NoteOffSet)
-            {
-                oscillator.release(key);
-            }
 
             //---------------
             // audio process
