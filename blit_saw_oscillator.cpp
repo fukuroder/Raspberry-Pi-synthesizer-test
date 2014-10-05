@@ -43,6 +43,7 @@ void blit_saw_oscillator::trigger(unsigned char note_no, unsigned char velocity)
         double freq = 440.0*( ::pow(2.0, (note_no - _note_no_center)/12.0 ));
         available_note->n = static_cast<int>(srate / 2.0 / freq);
         available_note->dt = freq / srate;
+    	available_note->value = 0.0;
         available_note->t = 0.5;
     }
 }
@@ -98,11 +99,11 @@ double blit_saw_oscillator::BLIT(double t, int n)
 double blit_saw_oscillator::render()
 {
     double value = 0.0;
-    for(auto note = _notes.begin(); note != _notes.end(); ++note)
+    for(auto &note : _notes)
     {
-        if( note->envelope == blit_saw_oscillator_note::On ){
+        if( note.envelope == blit_saw_oscillator_note::On ){
             // add
-            value += note->value * note->velocity;
+            value += note.value * note.velocity;
         }
     }
     return value;
@@ -111,14 +112,14 @@ double blit_saw_oscillator::render()
 //
 void blit_saw_oscillator::next()
 {
-    for(auto note = _notes.begin(); note != _notes.end(); ++note)
+    for(auto& note : _notes)
     {
-        if( note->envelope == blit_saw_oscillator_note::On ){
+        if( note.envelope == blit_saw_oscillator_note::On ){
             // add
-            note->t += note->dt;
-            if ( 1.0 <= note->t )note->t -= 1.0;
+            note.t += note.dt;
+            if ( 1.0 <= note.t )note.t -= 1.0;
 
-            note->value = note->value*_Leak + (BLIT(note->t, note->n)-2.0)*note->dt;
+            note.value = note.value*_Leak + (BLIT(note.t, note.n)-2.0)*note.dt;
         }
     }
 
