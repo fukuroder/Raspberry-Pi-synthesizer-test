@@ -82,6 +82,4 @@ protected:
 
     //
     double BLIT( double t, int n );
-
-
 };
