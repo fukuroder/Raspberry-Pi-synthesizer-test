@@ -1,5 +1,3 @@
-// g++ raspi_synth_test.cpp blit_saw_oscillator.cpp -std=c++0x -O3 -lasound
-
 #include<alsa/asoundlib.h>  // sudo apt-get install libasound2-dev
 #include<climits>
 #include<iostream>

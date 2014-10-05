@@ -1,6 +1,4 @@
 ﻿#pragma once
-
-// include
 #include<array>
 
 //
