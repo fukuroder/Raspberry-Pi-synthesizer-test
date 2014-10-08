@@ -13,32 +13,6 @@
 
 #include"blit_saw_oscillator.h"
 
-// ID取得
-std::string getHW(const std::string& target_id)
-{
-    int idx = 0;
-    do{
-        std::stringstream cardX;
-        cardX << "/proc/asound/card" << idx << "/id";
-        std::ifstream id_file( cardX.str() );
-        if( id_file.fail() ) break;
-
-        std::string id;
-        id_file >> id;
-
-        if( id == target_id )
-        {
-            std::stringstream hw;
-            hw << "hw:" << idx << ",0";
-            return hw.str();
-        }
-
-        idx++;
-    }while(true);
-
-    throw std::runtime_error(target_id + " not found.");
-}
-
 int main()
 {
     snd_pcm_t *pcm = nullptr;
@@ -50,7 +24,7 @@ int main()
         // BEHRINGER UCA222 ---> http://www.behringer.com/EN/Products/UCA222.aspx
         if( ::snd_pcm_open(
             &pcm,
-            ::getHW("CODEC").c_str(), // "hw:1,0"
+            "hw:CODEC",
             SND_PCM_STREAM_PLAYBACK,
             0) )
         {
@@ -95,8 +69,8 @@ int main()
         // KORG nanoKEY2 ---> http://www.korg.co.jp/Product/Controller/nano2/nanoKEY.html
         if( ::snd_rawmidi_open(
             &nanoKEY2,
-            NULL,
-            ::getHW("nanoKEY2").c_str(), // "hw:2,0"
+            nullptr,
+            "hw:nanoKEY2",
             SND_RAWMIDI_NONBLOCK ) )
         {
             throw std::runtime_error("snd_rawmidi_open error");
