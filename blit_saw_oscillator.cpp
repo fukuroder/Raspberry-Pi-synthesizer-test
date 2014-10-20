@@ -1,3 +1,10 @@
+/*
+ * blit_saw_oscillator.cpp
+ *
+ * Copyright (c) 2014, fukuroda (https://github.com/fukuroder)
+ * Released under the MIT license
+ */
+
 #include<math.h>
 #include<algorithm>
 #include "blit_saw_oscillator.h"

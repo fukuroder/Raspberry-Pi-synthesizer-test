@@ -1,3 +1,10 @@
+/*
+ * raspi_synth_test.cpp
+ *
+ * Copyright (c) 2014, fukuroda (https://github.com/fukuroder)
+ * Released under the MIT license
+ */
+
 #include<alsa/asoundlib.h>  // sudo apt-get install libasound2-dev
 #include<climits>
 #include<iostream>

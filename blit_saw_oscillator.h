@@ -1,4 +1,11 @@
-﻿#pragma once
+/*
+ * blit_saw_oscillator.h
+ *
+ * Copyright (c) 2014, fukuroda (https://github.com/fukuroder)
+ * Released under the MIT license
+ */
+
+#pragma once
 #include<array>
 
 //
