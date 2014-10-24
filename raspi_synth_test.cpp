@@ -119,8 +119,7 @@ int main()
             //---------------
             for(short& s : buffer)
             {
-                s = 1000.0*oscillator.render();
-                oscillator.next();
+                s = 1000.0*oscillator.process();
             }
 
             //-------------

@@ -61,10 +61,7 @@ public:
     void release(unsigned char note_no);
 
     //
-    double render();
-
-    //
-    void next();
+    double process();
 
 protected:
     //
@@ -83,8 +80,8 @@ protected:
     std::array<blit_saw_oscillator_note, 4> _notes;
 
     //
-    double LinearInterpolatedSin( double t );
+    double linear_interpolated_sin( double t );
 
     //
-    double BLIT( double t, int n );
+    double bandlimited_impulse( double t, int n );
 };

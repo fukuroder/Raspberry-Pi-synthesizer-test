@@ -50,7 +50,7 @@ void blit_saw_oscillator::trigger(unsigned char note_no, unsigned char velocity)
         double freq = 440.0*( ::pow(2.0, (note_no - _note_no_center)/12.0 ));
         available_note->n = static_cast<int>(srate / 2.0 / freq);
         available_note->dt = freq / srate;
-    	available_note->value = 0.0;
+        available_note->value = 0.0;
         available_note->t = 0.5;
     }
 }
@@ -71,7 +71,7 @@ void blit_saw_oscillator::release(unsigned char note_no)
 }
 
 //
-double blit_saw_oscillator::LinearInterpolatedSin(double x)
+double blit_saw_oscillator::linear_interpolated_sin(double x)
 {
     //
     double pos = (_sinTable.size()-1) * x;
@@ -87,47 +87,35 @@ double blit_saw_oscillator::LinearInterpolatedSin(double x)
 }
 
 //
-double blit_saw_oscillator::BLIT(double t, int n)
+double blit_saw_oscillator::bandlimited_impulse(double t, int n)
 {
-    //
-    double den = LinearInterpolatedSin(0.5*t);
-
-    if( den < 1.0e-12 )
+    if ( t < 1.0e-8 || 1.0-1.0e-8 < t )
     {
         return 2.0*(2*n+1);
     }
-
-    double num = LinearInterpolatedSin(::fmod((n+0.5)*t, 1.0));
-
-    return 2.0*num/den;
+    else
+    {
+        double den = linear_interpolated_sin(0.5*t);
+        double num = linear_interpolated_sin(::fmod((n+0.5)*t, 1.0));
+        return 2.0*num/den;
+    }
 }
 
 //
-double blit_saw_oscillator::render()
+double blit_saw_oscillator::process()
 {
     double value = 0.0;
     for(auto &note : _notes)
     {
         if( note.envelope == blit_saw_oscillator_note::On ){
-            // add
+            // render
             value += note.value * note.velocity;
+
+            // update
+            note.t += note.dt;
+            if ( 1.0 <= note.t )note.t -= 1.0;
+            note.value = note.value*_Leak + (bandlimited_impulse(note.t, note.n)-2.0)*note.dt;
         }
     }
     return value;
-}
-
-//
-void blit_saw_oscillator::next()
-{
-    for(auto& note : _notes)
-    {
-        if( note.envelope == blit_saw_oscillator_note::On ){
-            // add
-            note.t += note.dt;
-            if ( 1.0 <= note.t )note.t -= 1.0;
-
-            note.value = note.value*_Leak + (BLIT(note.t, note.n)-2.0)*note.dt;
-        }
-    }
-
 }
