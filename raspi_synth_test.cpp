@@ -14,16 +14,17 @@
 #include<vector>
 #include<array>
 #include<map>
-#include<set>
 #include<algorithm>
 #include<stdexcept>
 
 #include"blit_saw_oscillator.h"
+#include"biquad_filter.h"
 
 int main()
 {
     snd_pcm_t *pcm = nullptr;
     snd_rawmidi_t *nanoKEY2 = nullptr;
+    snd_rawmidi_t *nanoKONTROL2 = nullptr;
 
     try
     {
@@ -86,6 +87,28 @@ int main()
         // オシレータ作成
         blit_saw_oscillator oscillator(0.995, 44100);
 
+        // open MIDI device
+        // KORG nanoKONTROL2 ---> http://www.korg.co.jp/Product/Controller/nano2/nanoKONTROL.html
+        if( ::snd_rawmidi_open(
+            &nanoKONTROL2,
+            nullptr,
+            "hw:nanoKONTROL2",
+            SND_RAWMIDI_NONBLOCK ) )
+        {
+            throw std::runtime_error("snd_rawmidi_open error");
+        }
+
+        // parameters
+        double volume = 1.0;
+        double cutoff = 400.0;
+        double resonance = M_SQRT1_2;
+        double low = 1.0;
+        double band = 0.0;
+        double high = 0.0;
+
+        // Biquad Filter作成
+        biquad_filter filter(cutoff, resonance, low, band, high);
+
         do{
             //--------------------
             // MIDI event process
@@ -114,12 +137,81 @@ int main()
                 }
             }while(true);
 
+            // key:control number / value:value
+            std::map<unsigned char, unsigned char> ControlChangeMap;
+            do{
+                // read MIDI input
+                std::array<unsigned char, 3> midi_data = {};
+                ssize_t midi_read_count = ::snd_rawmidi_read(nanoKONTROL2, midi_data.data(), midi_data.size());
+
+                if( midi_read_count != static_cast<int>(midi_data.size()) )
+                {
+                    // no more data
+                    break;
+                }
+
+                ::printf("\rMIDI message:0x%02x 0x%02x 0x%02x", midi_data[0], midi_data[1], midi_data[2]);
+                ::fflush(stdout);
+
+                if( midi_data[0] == 0xb0/*control change*/){
+                    // 最後の値のみを保持
+                    ControlChangeMap[ midi_data[1] ] = midi_data[2];
+                }
+
+            }while(true);
+
+            // update parameters
+            for(const auto& key_value : ControlChangeMap)
+            {
+                unsigned char control_number = key_value.first;
+                double value = static_cast<double>(key_value.second)/127;
+                if( control_number == 0x10 /* knob1 */)
+                {
+                    volume = value;
+                }
+                else if( control_number == 0x11 /* knob2 */)
+                {
+                    cutoff = 40.0*(1.0-value) + 4000.0*value;
+                }
+                else if( control_number == 0x12 /* knob3 */)
+                {
+                    resonance = M_SQRT1_2*(1.0-value) + 20.0*value;
+                }
+                else if( control_number == 0x13 /* knob4 */)
+                {
+                    low = value;
+                }
+                else if( control_number == 0x14 /* knob5 */)
+                {
+                    band = value;
+                }
+                else if( control_number == 0x15 /* knob6 */)
+                {
+                    high = value;
+                }
+            }
+
+            // フィルタの更新が必要か？
+            auto isFilterUpdate = [](std::pair<unsigned char, unsigned char> key_value){
+                unsigned char control_number = key_value.first;
+                return control_number == 0x11 // knob2
+                    || control_number == 0x12 // knob3
+                    || control_number == 0x13 // knob4
+                    || control_number == 0x14 // knob5
+                    || control_number == 0x15;// knob6
+            };
+            if( std::any_of(ControlChangeMap.begin(), ControlChangeMap.end(), isFilterUpdate) )
+            {
+                // フィルタの更新(L/R)
+                filter.update(cutoff, resonance, low, band, high);
+            }
+
             //---------------
             // audio process
             //---------------
             for(short& s : buffer)
             {
-                s = 1000.0*oscillator.process();
+                s = 1000.0 * filter.process( oscillator.process() );
             }
 
             //-------------
@@ -148,6 +240,12 @@ int main()
     {
         // close sound file
         ::snd_rawmidi_close(nanoKEY2);
+    }
+
+    if(nanoKONTROL2 != nullptr)
+    {
+        // close sound file
+        ::snd_rawmidi_close(nanoKONTROL2);
     }
 
     return 0;
